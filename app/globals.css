@@ -37,6 +37,26 @@
     from { height: var(--radix-accordion-content-height); }
     to { height: 0; }
   }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-in-from-bottom {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes slide-in-from-left {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes scale-in {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
 }
 
 @layer base {
@@ -100,7 +120,59 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    font-family: var(--font-poly-sans-neutral), sans-serif !important;
+  }
+  
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-poly-sans-neutral), sans-serif !important;
+  }
+  
+  /* Enforce font on all text elements */
+  h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select, label, li, td, th, 
+  code, pre, small, strong, em, b, i, u, sub, sup, blockquote, cite, abbr, address {
+    font-family: var(--font-poly-sans-neutral), sans-serif !important;
+  }
+  
+  /* Override any component fonts and third-party components */
+  [class*="font-"],
+  [class*="tw-"],
+  [id*="thirdweb"],
+  [data-testid],
+  svg text,
+  .font-sans,
+  .font-mono,
+  .font-serif {
+    font-family: var(--font-poly-sans-neutral), sans-serif !important;
+  }
+}
+
+/* Global font enforcement - highest priority */
+* {
+  font-family: var(--font-poly-sans-neutral), sans-serif !important;
+}
+
+/* Animation utilities */
+@layer utilities {
+  .animate-in {
+    animation: fade-in 0.5s ease-out;
+  }
+
+  .fade-in {
+    animation: fade-in 0.6s ease-out;
+  }
+
+  .slide-in-from-bottom {
+    animation: slide-in-from-bottom 0.6s ease-out;
+  }
+
+  .slide-in-from-left {
+    animation: slide-in-from-left 0.5s ease-out;
+  }
+
+  .scale-in {
+    animation: scale-in 0.4s ease-out;
   }
 }

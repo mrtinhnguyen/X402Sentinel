@@ -36,22 +36,23 @@ export function TopTweets({ tweets }: TopTweetsProps) {
   };
 
   return (
-    <Card>
+    <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-2xl">
       <CardHeader>
-        <CardTitle>Top Tweets</CardTitle>
-        <CardDescription>Most engaging tweets about this token</CardDescription>
+        <CardTitle className="text-white">Top Tweets</CardTitle>
+        <CardDescription className="text-white/70">Most engaging tweets about this token</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {tweets.map((tweet) => (
+          {tweets.map((tweet, index) => (
             <div
               key={tweet.id}
-              className="p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+              className="p-4 border border-white/20 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-300 animate-in fade-in slide-in-from-left"
+              style={{ animationDelay: `${index * 100}ms` }}
             >
-              <p className="text-sm mb-3 leading-relaxed">{tweet.text}</p>
+              <p className="text-sm mb-3 leading-relaxed text-white/90">{tweet.text}</p>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-4 text-xs text-white/70">
                   <div className="flex items-center gap-1">
                     <Heart className="h-3 w-3" />
                     <span>{tweet.likes.toLocaleString()}</span>
@@ -65,7 +66,7 @@ export function TopTweets({ tweets }: TopTweetsProps) {
                     <span>{tweet.replies.toLocaleString()}</span>
                   </div>
                   {tweet.createdAt && (
-                    <span className="text-muted-foreground">
+                    <span className="text-white/60">
                       {formatDate(tweet.createdAt)}
                     </span>
                   )}
@@ -75,7 +76,7 @@ export function TopTweets({ tweets }: TopTweetsProps) {
                   href={`https://twitter.com/i/web/status/${tweet.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
                 >
                   View <ExternalLink className="h-3 w-3" />
                 </a>

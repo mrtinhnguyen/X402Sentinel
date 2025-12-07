@@ -20,8 +20,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${polySansNeutral.variable} font-sans antialiased`}>
+    <html lang="en" className={polySansNeutral.variable} style={{ fontFamily: 'var(--font-poly-sans-neutral), sans-serif' }}>
+      <body 
+        className="antialiased font-sans" 
+        style={{ fontFamily: 'var(--font-poly-sans-neutral), sans-serif' }}
+      >
         <ThirdwebProvider>{children}</ThirdwebProvider>
       </body>
     </html>

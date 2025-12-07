@@ -95,76 +95,169 @@ async function fetchCoinGeckoData(tokenAddress: string): Promise<Partial<TokenDa
 
 async function fetchDexScreenerData(tokenAddress: string): Promise<Partial<TokenData>> {
   try {
-    const response = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`
-    );
+    // Try multiple chainId formats for Avalanche
+    const chainIds = ["avalanche", "avax", "43114"]; // Try different formats
+    let pairs: any[] = [];
+    let lastError: any = null;
 
-    if (!response.ok) {
-      throw new Error(`DexScreener API error: ${response.statusText}`);
+    // Try the new token-pairs endpoint with different chainId formats
+    for (const chainId of chainIds) {
+      try {
+        const response = await fetch(
+          `https://api.dexscreener.com/token-pairs/v1/${chainId}/${tokenAddress}`,
+          {
+            headers: {
+              'Accept': '*/*',
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          // The endpoint might return pairs directly or in a data structure
+          const foundPairs = data.pairs || data.data?.pairs || (Array.isArray(data) ? data : []);
+          
+          if (Array.isArray(foundPairs) && foundPairs.length > 0) {
+            pairs = foundPairs;
+            console.log(`DexScreener token-pairs API success with chainId "${chainId}": Found ${pairs.length} pairs`);
+            break;
+          }
+        } else {
+          const errorText = await response.text();
+          console.warn(`DexScreener token-pairs API failed for chainId "${chainId}" (${response.status}): ${errorText}`);
+        }
+      } catch (err) {
+        lastError = err;
+        console.warn(`DexScreener token-pairs API error for chainId "${chainId}":`, err);
+      }
     }
 
-    const data = await response.json();
-    
-    // Ensure pairs is an array
-    if (!data || !Array.isArray(data.pairs) || data.pairs.length === 0) {
+    // Fallback to old endpoint if new one fails
+    if (pairs.length === 0) {
+      console.warn('DexScreener token-pairs API failed for all chainIds, trying fallback endpoint...');
+      try {
+        const fallbackResponse = await fetch(
+          `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`
+        );
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          pairs = fallbackData.pairs || [];
+          console.log(`DexScreener fallback endpoint: Found ${pairs.length} pairs`);
+        } else {
+          throw new Error(`DexScreener API error: ${fallbackResponse.statusText}`);
+        }
+      } catch (fallbackErr) {
+        console.error('DexScreener fallback endpoint also failed:', fallbackErr);
+        throw lastError || fallbackErr;
+      }
+    }
+
+    if (!Array.isArray(pairs) || pairs.length === 0) {
+      console.warn('No pairs found in DexScreener response');
       return {};
     }
 
-    // Get the pair with highest liquidity
-    const sortedPairs = [...data.pairs].sort((a: any, b: any) => {
-      const aLiquidity = parseFloat(a.liquidity?.usd || "0");
-      const bLiquidity = parseFloat(b.liquidity?.usd || "0");
-      return bLiquidity - aLiquidity;
-    });
-    const mainPair = sortedPairs[0];
-
-    // Extract price history for chart pattern analysis
-    const priceHistory = mainPair.priceHistory?.h24 || [];
-    const chartPattern = detectChartPattern(priceHistory);
-
-    // Extract market cap from DexScreener (fdv or marketCap)
-    const marketCap = mainPair.fdv 
-      ? parseFloat(mainPair.fdv) 
-      : mainPair.marketCap 
-        ? parseFloat(mainPair.marketCap) 
-        : undefined;
-
-    // Estimate holders from pair data (rough estimate based on unique addresses in pair)
-    const estimatedHolders = mainPair.pairCreatedAt 
-      ? Math.max(0, Math.floor((Date.now() - mainPair.pairCreatedAt * 1000) / (1000 * 60 * 60 * 24) * 10)) // Rough estimate
-      : 0;
-
-    // Calculate buy/sell ratio from DexScreener data
-    const buys = mainPair.txns?.m5?.buys || mainPair.buys || 0;
-    const sells = mainPair.txns?.m5?.sells || mainPair.sells || 0;
-    const buySellRatio = sells > 0 ? buys / sells : buys > 0 ? buys : 1.0;
-
-    // Determine whale activity based on volume and large transactions
-    const volume24h = mainPair.volume?.h24 ? parseFloat(mainPair.volume.h24) : 0;
-    let whaleActivity: "low" | "moderate" | "high" = "low";
-    if (volume24h > 1000000) {
-      whaleActivity = "high";
-    } else if (volume24h > 100000) {
-      whaleActivity = "moderate";
-    }
-
-    return {
-      price: mainPair.priceUsd ? parseFloat(mainPair.priceUsd) : undefined,
-      marketCap: marketCap,
-      volume24h: volume24h || undefined,
-      priceChange24h: mainPair.priceChange?.h24 ? parseFloat(mainPair.priceChange.h24) : undefined,
-      chartPattern,
-      onChainMetrics: {
-        totalHolders: estimatedHolders,
-        buySellRatio: buySellRatio,
-        whaleActivity: whaleActivity,
-        liquidity: mainPair.liquidity?.usd ? `$${parseFloat(mainPair.liquidity.usd).toLocaleString()}` : 'N/A',
-      },
-    };
+    return processDexScreenerPairs(pairs);
   } catch (error) {
     console.error('DexScreener fetch error:', error);
     return {};
   }
+}
+
+function processDexScreenerPairs(pairs: any[]): Partial<TokenData> {
+  if (!pairs || pairs.length === 0) {
+    return {};
+  }
+
+  // Get the pair with highest liquidity
+  const sortedPairs = [...pairs].sort((a: any, b: any) => {
+    const aLiquidity = parseFloat(a.liquidity?.usd || a.liquidity || "0");
+    const bLiquidity = parseFloat(b.liquidity?.usd || b.liquidity || "0");
+    return bLiquidity - aLiquidity;
+  });
+  const mainPair = sortedPairs[0];
+
+  // Extract price history for chart pattern analysis
+  const priceHistory = mainPair.priceHistory?.h24 || [];
+  const chartPattern = detectChartPattern(priceHistory);
+
+  // Extract market cap from DexScreener (fdv or marketCap)
+  const marketCap = mainPair.fdv 
+    ? parseFloat(mainPair.fdv) 
+    : mainPair.marketCap 
+      ? parseFloat(mainPair.marketCap) 
+      : undefined;
+
+  // Calculate total liquidity across all pairs (aggregate from all pools)
+  let totalLiquidity = 0;
+  let totalVolume24h = 0;
+  let maxHolders = 0;
+  
+  pairs.forEach((pair: any) => {
+    // Aggregate liquidity
+    const liquidity = parseFloat(pair.liquidity?.usd || pair.liquidity || "0");
+    if (!isNaN(liquidity) && liquidity > 0) {
+      totalLiquidity += liquidity;
+    }
+    
+    // Aggregate volume
+    const volume = parseFloat(pair.volume?.h24 || "0");
+    if (!isNaN(volume) && volume > 0) {
+      totalVolume24h += volume;
+    }
+    
+    // Get max holders from any pair (some DEXs provide this)
+    const pairHolders = pair.holders || pair.uniqueWalletCount || pair.uniqueWallets || 0;
+    if (pairHolders > maxHolders) {
+      maxHolders = pairHolders;
+    }
+  });
+
+  // Use main pair for price and other metrics
+  const price = mainPair.priceUsd ? parseFloat(mainPair.priceUsd) : undefined;
+  const priceChange24h = mainPair.priceChange?.h24 ? parseFloat(mainPair.priceChange.h24) : undefined;
+
+  // Calculate buy/sell ratio from DexScreener data (aggregate across all pairs)
+  let totalBuys = 0;
+  let totalSells = 0;
+  
+  pairs.forEach((pair: any) => {
+    const buys = pair.txns?.m5?.buys || pair.txns?.h24?.buys || pair.buys || 0;
+    const sells = pair.txns?.m5?.sells || pair.txns?.h24?.sells || pair.sells || 0;
+    totalBuys += buys;
+    totalSells += sells;
+  });
+  
+  const buySellRatio = totalSells > 0 ? totalBuys / totalSells : totalBuys > 0 ? totalBuys : 1.0;
+
+  // Determine whale activity based on total volume
+  let whaleActivity: "low" | "moderate" | "high" = "low";
+  if (totalVolume24h > 1000000) {
+    whaleActivity = "high";
+  } else if (totalVolume24h > 100000) {
+    whaleActivity = "moderate";
+  }
+
+  console.log(`DexScreener processed: liquidity=$${totalLiquidity.toFixed(2)}, volume24h=$${totalVolume24h.toFixed(2)}, holders=${maxHolders}, pairs=${pairs.length}`);
+
+  return {
+    price: price,
+    marketCap: marketCap,
+    volume24h: totalVolume24h > 0 ? totalVolume24h : undefined,
+    priceChange24h: priceChange24h,
+    chartPattern,
+    onChainMetrics: {
+      totalHolders: maxHolders > 0 ? maxHolders : 0, // Use holders from DexScreener if available
+      buySellRatio: buySellRatio,
+      whaleActivity: whaleActivity,
+      liquidity: totalLiquidity > 0 
+        ? `$${totalLiquidity.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}` 
+        : mainPair.liquidity?.usd 
+          ? `$${parseFloat(mainPair.liquidity.usd).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 })}` 
+          : 'N/A',
+    },
+  };
 }
 
 // Chart pattern detection based on price history
@@ -470,13 +563,13 @@ async function fetchTwitterSentiment(tokenSymbol: string, tokenName: string): Pr
       return { sentiment: 0, tweets: [] };
     }
 
-    // Build search query - search for token symbol and name, exclude retweets and spam
-    // Note: Removed $ cashtag operator as it's not available in all X API tiers
-    const query = `(${tokenSymbol} OR ${tokenName}) (crypto OR token OR coin OR trading OR price) -is:retweet -is:reply lang:en -spam -bot`;
-    const maxResults = 50; // Get up to 50 tweets for analysis
+    // Build search query - try multiple query strategies
+    // Strategy 1: Try with token symbol and name
+    let query = `${tokenSymbol} OR ${tokenName} -is:retweet -is:reply lang:en`;
+    let maxResults = 50;
 
     // Fetch tweets using X API v2
-    const response = await fetch(
+    let response = await fetch(
       `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(query)}&max_results=${maxResults}&tweet.fields=created_at,public_metrics,text`,
       {
         headers: {
@@ -486,23 +579,74 @@ async function fetchTwitterSentiment(tokenSymbol: string, tokenName: string): Pr
       }
     );
 
-    if (!response.ok) {
+    let data: any = null;
+    let tweets: any[] = [];
+
+    if (response.ok) {
+      data = await response.json();
+      tweets = data.data || [];
+      console.log(`X API query 1: Found ${tweets.length} tweets for "${tokenSymbol}" / "${tokenName}"`);
+    } else {
       const errorText = await response.text();
-      console.error(`X API error: ${response.status} - ${errorText}`);
-      return { sentiment: 0, tweets: [] };
+      console.warn(`X API query 1 error (${response.status}): ${errorText}`);
     }
 
-    const data = await response.json();
-    const tweets = data.data || [];
+    // Strategy 2: If no results, try a broader search with crypto keywords
+    if (tweets.length === 0) {
+      query = `${tokenSymbol} crypto OR ${tokenSymbol} token OR ${tokenSymbol} coin -is:retweet -is:reply lang:en`;
+      response = await fetch(
+        `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(query)}&max_results=${maxResults}&tweet.fields=created_at,public_metrics,text`,
+        {
+          headers: {
+            'Authorization': `Bearer ${bearerToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        data = await response.json();
+        tweets = data.data || [];
+        console.log(`X API query 2: Found ${tweets.length} tweets for broader "${tokenSymbol}" search`);
+      } else {
+        const errorText = await response.text();
+        console.warn(`X API query 2 error (${response.status}): ${errorText}`);
+      }
+    }
+
+    // Strategy 3: If still no results, try just the token symbol
+    if (tweets.length === 0) {
+      query = `${tokenSymbol} -is:retweet -is:reply lang:en`;
+      response = await fetch(
+        `https://api.twitter.com/2/tweets/search/recent?query=${encodeURIComponent(query)}&max_results=${maxResults}&tweet.fields=created_at,public_metrics,text`,
+        {
+          headers: {
+            'Authorization': `Bearer ${bearerToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        data = await response.json();
+        tweets = data.data || [];
+        console.log(`X API query 3: Found ${tweets.length} tweets for simple "${tokenSymbol}" search`);
+      } else {
+        const errorText = await response.text();
+        console.warn(`X API query 3 error (${response.status}): ${errorText}`);
+      }
+    }
 
     if (tweets.length === 0) {
-      console.log('No tweets found for token');
+      console.log(`No tweets found after trying 3 query strategies for token: ${tokenSymbol} / ${tokenName}`);
       return { sentiment: 0, tweets: [] };
     }
 
     // Process tweets with engagement metrics
+    console.log(`Processing ${tweets.length} tweets...`);
     const processedTweets = tweets.map((tweet: any) => {
       const metrics = tweet.public_metrics || {};
+      const engagement = (metrics.like_count || 0) + (metrics.retweet_count || 0) * 2;
       return {
         id: tweet.id,
         text: tweet.text,
@@ -510,7 +654,7 @@ async function fetchTwitterSentiment(tokenSymbol: string, tokenName: string): Pr
         retweets: metrics.retweet_count || 0,
         replies: metrics.reply_count || 0,
         createdAt: tweet.created_at,
-        engagement: (metrics.like_count || 0) + (metrics.retweet_count || 0) * 2, // RTs weighted more
+        engagement: engagement,
       };
     });
 
@@ -526,6 +670,8 @@ async function fetchTwitterSentiment(tokenSymbol: string, tokenName: string): Pr
         replies: t.replies,
         createdAt: t.createdAt,
       }));
+
+    console.log(`Top tweets selected: ${topTweets.length}`);
 
     // Use AI to analyze sentiment of all tweets
     // Include engagement metrics for better context
@@ -932,10 +1078,16 @@ export async function GET(request: Request) {
         concentration: 0,
       },
       onChainMetrics: {
-        totalHolders: onChainData.onChainMetrics?.totalHolders || dexScreenerData.onChainMetrics?.totalHolders || 0,
-        buySellRatio: onChainData.onChainMetrics?.buySellRatio || dexScreenerData.onChainMetrics?.buySellRatio || 1.0,
-        whaleActivity: onChainData.onChainMetrics?.whaleActivity || dexScreenerData.onChainMetrics?.whaleActivity || 'unknown',
-        liquidity: onChainData.onChainMetrics?.liquidity || dexScreenerData.onChainMetrics?.liquidity || 'N/A',
+        // Prioritize DexScreener holders if available, otherwise use on-chain estimate
+        totalHolders: dexScreenerData.onChainMetrics?.totalHolders > 0 
+          ? dexScreenerData.onChainMetrics.totalHolders 
+          : onChainData.onChainMetrics?.totalHolders || 0,
+        buySellRatio: dexScreenerData.onChainMetrics?.buySellRatio || onChainData.onChainMetrics?.buySellRatio || 1.0,
+        whaleActivity: dexScreenerData.onChainMetrics?.whaleActivity || onChainData.onChainMetrics?.whaleActivity || 'unknown',
+        // Always prioritize DexScreener liquidity (it's more accurate from pools)
+        liquidity: dexScreenerData.onChainMetrics?.liquidity && dexScreenerData.onChainMetrics.liquidity !== 'N/A'
+          ? dexScreenerData.onChainMetrics.liquidity
+          : onChainData.onChainMetrics?.liquidity || 'N/A',
       },
       socialSentiment: socialData.socialSentiment || {
         twitter: 0,
