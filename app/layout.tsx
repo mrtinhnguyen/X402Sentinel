@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
 import { ThirdwebProvider } from "thirdweb/react";
+import localFont from "next/font/local";
 import "./globals.css";
 
+const polySansNeutral = localFont({
+  src: "./fonts/PolySans Neutral.ttf",
+  variable: "--font-poly-sans-neutral",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "x402 Starter Kit",
-  description: "HTTP 402 payment integration with Thirdweb",
+  title: "Avalanche Sentinel",
+  description: "Real-time AI-powered risk intelligence and sentiment analysis platform for Avalanche tokens",
 };
 
 export default function RootLayout({
@@ -14,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className={`${polySansNeutral.variable} font-sans antialiased`}>
         <ThirdwebProvider>{children}</ThirdwebProvider>
       </body>
     </html>

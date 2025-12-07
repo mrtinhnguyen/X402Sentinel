@@ -295,3 +295,7 @@ sequenceDiagram
 - **Token Not Found**: Show error, allow new search
 - **API Error**: Show user-friendly error message
 
+
+
+
+

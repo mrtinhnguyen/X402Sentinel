@@ -27,7 +27,7 @@ graph TB
 
     subgraph Data["📊 Data Sources"]
         RPC[Avalanche RPC]
-        CG[CoinGecko API]
+        DS[DexScreener API]
         TW[Twitter API]
         RD[Reddit API]
     end
@@ -55,6 +55,7 @@ graph TB
     end
 
     subgraph AI["🤖 AI Analysis Engine"]
+        OR[OpenRouter AI]
         ONCHAIN_AI[On-Chain Sentiment AI]
         SOCIAL_AI[Social Sentiment AI]
         COMBINE[Combine Analysis]
@@ -72,7 +73,7 @@ graph TB
     UI --> PREM_API
 
     BASIC_API --> RPC
-    BASIC_API --> CG
+    BASIC_API --> DS
     BASIC_API --> TOKEN_INFO
     BASIC_API --> HOLDERS
     BASIC_API --> TRANSACTIONS
@@ -99,7 +100,7 @@ graph TB
     RPC --> FLOW
     RPC --> BEHAVIOR
 
-    CG --> DB
+    DS --> DB
     TW --> TWITTER_DATA
     RD --> REDDIT_DATA
 
@@ -119,8 +120,9 @@ graph TB
     REDDIT_DATA --> SOCIAL_AI
     NEWS --> SOCIAL_AI
 
-    ONCHAIN_AI --> COMBINE
-    SOCIAL_AI --> COMBINE
+    ONCHAIN_AI --> OR
+    SOCIAL_AI --> OR
+    OR --> COMBINE
     COMBINE --> INSIGHTS
 
     INSIGHTS --> DB
@@ -212,7 +214,7 @@ flowchart TB
 graph TB
     subgraph "Data Sources"
         AVALANCHE_RPC[Avalanche RPC<br/>On-Chain Data]
-        COINGECKO[CoinGecko API<br/>Market Data]
+        DEXSCREENER[DexScreener API<br/>Trading Data]
         TWITTER[Twitter API<br/>Social Sentiment]
         REDDIT[Reddit API<br/>Community Sentiment]
     end
@@ -229,6 +231,7 @@ graph TB
     end
     
     subgraph "AI Analysis Layer"
+        OPENROUTER[OpenRouter AI<br/>GPT-4/Claude]
         SENTIMENT[Sentiment Analysis<br/>NLP Processing]
         RISK[Risk Scoring<br/>Multi-factor Analysis]
         PATTERN[Pattern Detection<br/>ML Models]
@@ -251,7 +254,7 @@ graph TB
     end
     
     AVALANCHE_RPC --> COLLECTOR
-    COINGECKO --> COLLECTOR
+    DEXSCREENER --> COLLECTOR
     TWITTER --> COLLECTOR
     REDDIT --> COLLECTOR
     
@@ -263,9 +266,10 @@ graph TB
     NORMALIZE --> ENRICH
     ENRICH --> VALIDATE
     
-    VALIDATE --> SENTIMENT
-    VALIDATE --> RISK
-    VALIDATE --> PATTERN
+    VALIDATE --> OPENROUTER
+    OPENROUTER --> SENTIMENT
+    OPENROUTER --> RISK
+    OPENROUTER --> PATTERN
     
     SENTIMENT --> COMBINE
     RISK --> COMBINE
@@ -281,6 +285,7 @@ graph TB
     REDIS --> STREAM
     
     style COLLECTOR fill:#3b82f6
+    style OPENROUTER fill:#8b5cf6
     style SENTIMENT fill:#8b5cf6
     style SIGNAL fill:#10b981
     style REDIS fill:#ef4444
@@ -303,11 +308,12 @@ graph TB
 - **Facilitator Wallet**: ERC4337 Smart Account for gasless transactions
 
 ### Data Collection
-- **On-Chain Data**: Token info, holders, transactions, liquidity, contracts, whale activity
-- **Market Data**: Price, volume, market cap from CoinGecko
+- **On-Chain Data**: Token info, holders, transactions, liquidity, contracts, whale activity (Avalanche RPC)
+- **Market Data**: Price, volume, liquidity, DEX pairs from DexScreener API
 - **Social Media**: Twitter, Reddit, news articles
 
 ### AI Processing
+- **OpenRouter**: Unified AI API for accessing GPT-4, Claude, and other models
 - **On-Chain Sentiment**: Analyzes buy/sell pressure, volume trends, whale behavior
 - **Social Sentiment**: Processes social media data for market sentiment
 - **Combined Analysis**: Merges both sentiment types for comprehensive insights
@@ -322,6 +328,6 @@ graph TB
 - **Blockchain**: Thirdweb SDK v5, Avalanche Network
 - **Payment**: x402 Protocol, ERC4337 Smart Accounts
 - **Data**: PostgreSQL, Redis
-- **AI**: OpenAI/Anthropic APIs
-- **APIs**: CoinGecko, Twitter API, Reddit API
+- **AI**: OpenRouter (GPT-4, Claude, etc.)
+- **APIs**: DexScreener API, Avalanche RPC, Twitter API, Reddit API
 
