@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { ThirdwebProvider } from "thirdweb/react";
 import localFont from "next/font/local";
 import "./globals.css";
+import { Providers } from "@/components/providers";
 
 const polySansNeutral = localFont({
   src: "./fonts/PolySans Neutral.ttf",
@@ -25,7 +25,7 @@ export default function RootLayout({
         className="antialiased font-sans" 
         style={{ fontFamily: 'var(--font-poly-sans-neutral), sans-serif' }}
       >
-        <ThirdwebProvider>{children}</ThirdwebProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

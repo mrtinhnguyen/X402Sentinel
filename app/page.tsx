@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { createThirdwebClient } from "thirdweb";
 import { ConnectButton } from "thirdweb/react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,12 @@ const client = createThirdwebClient({
 });
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image */}
@@ -61,12 +68,14 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Wallet Connect */}
-        <div className="mt-8 flex justify-center">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-2">
-            <ConnectButton client={client} />
+        {/* Wallet Connect - Only render on client */}
+        {mounted && (
+          <div className="mt-8 flex justify-center">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-2">
+              <ConnectButton client={client} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
