@@ -2041,6 +2041,53 @@ export async function GET(request: Request) {
         },
       },
       facilitator: thirdwebFacilitator,
+      routeConfig: {
+        description: "AI-powered comprehensive token risk analysis with on-chain metrics, social sentiment, and technical analysis",
+        mimeType: "application/json",
+        inputSchema: {
+          queryParams: {
+            tokenAddress: "string (required): Token address to analyze (0x-prefixed hex string)"
+          },
+          bodyType: undefined, // GET request, no body
+        },
+        outputSchema: {
+          success: "boolean",
+          tokenAddress: "string",
+          tokenData: {
+            price: "number",
+            marketCap: "number (optional)",
+            volume24h: "number (optional)",
+            priceChange24h: "number (optional)",
+            onChainMetrics: {
+              totalHolders: "number",
+              buySellRatio: "number",
+              whaleActivity: "string",
+              liquidity: "string"
+            },
+            advancedOnChainMetrics: "object (optional): Advanced metrics including active addresses, transaction volume, exchange flows, holder distribution, MVRV, NUPL, TVL, whale activity, HODL waves, NVT",
+            socialSentiment: {
+              twitter: "number",
+              reddit: "number",
+              overall: "number"
+            },
+            chartPattern: "string (optional)"
+          },
+          analysis: {
+            riskScore: "number (0-100)",
+            recommendation: "string: BUY | HOLD | SELL | AVOID",
+            reasoning: "string",
+            breakdown: {
+              onChainScore: "number (0-100)",
+              socialScore: "number (0-100)",
+              technicalScore: "number (0-100)",
+              riskFactors: "string[]"
+            }
+          },
+          topTweets: "array (optional): Array of top tweets with engagement metrics",
+          timestamp: "string (ISO 8601)"
+        },
+        discoverable: true,
+      },
     });
 
     if (result.status !== 200) {

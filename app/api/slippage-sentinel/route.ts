@@ -334,6 +334,32 @@ export async function GET(request: Request) {
         },
       },
       facilitator: thirdwebFacilitator,
+      routeConfig: {
+        description: "Safe slippage tolerance estimation for token swaps with pool depth and volatility analysis",
+        mimeType: "application/json",
+        inputSchema: {
+          queryParams: {
+            token_in: "string (required): Input token address (0x-prefixed hex string)",
+            token_out: "string (required): Output token address (0x-prefixed hex string)",
+            amount_in: "string (required): Input amount as string (e.g., '1000')",
+            route_hint: "string (optional): Route hint for DEX routing (default: 'base')"
+          },
+          bodyType: undefined, // GET request, no body
+        },
+        outputSchema: {
+          success: "boolean",
+          min_safe_slip_bps: "number: Minimum safe slippage in basis points",
+          pool_depths: "number: Total pool depth in USD",
+          recent_trade_size_p95: "number: 95th percentile trade size in USD",
+          volatility_index: "number: Volatility index (0-100)",
+          token_in: "string",
+          token_out: "string",
+          amount_in: "number",
+          route_hint: "string (optional)",
+          timestamp: "string (ISO 8601)"
+        },
+        discoverable: true,
+      },
     });
 
     if (result.status !== 200) {
