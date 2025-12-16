@@ -2008,22 +2008,28 @@ Respond in JSON format:
 }
 
 export async function GET(request: Request) {
-  // Get token address from query parameters first
-  const { searchParams } = new URL(request.url);
-  const tokenAddress = searchParams.get("tokenAddress");
-
-  if (!tokenAddress) {
-    return Response.json({ error: "Token address is required as query parameter" }, { status: 400 });
-  }
-
+  // ALWAYS check payment first (before parameter validation)
+  // This allows third-party services (like x402scan.com) to configure payment requirements
+  // even when parameters are missing
+  
   // Skip payment verification if price is 0 (free)
   if (!PAYMENT_AMOUNTS.TOKEN_ANALYSIS.isFree) {
     // Get payment data - let settlePayment handle 402 if missing
     const paymentData = request.headers.get("x-payment");
 
+    // Get token address from query parameters (may be undefined for payment configuration)
+    const { searchParams } = new URL(request.url);
+    const tokenAddress = searchParams.get("tokenAddress");
+
+    // Build resource URL with tokenAddress if available
+    const resourceUrl = tokenAddress
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/token-analysis?tokenAddress=${encodeURIComponent(tokenAddress)}`
+      : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/token-analysis`;
+
     // Verify payment - settlePayment will return proper 402 format if paymentData is missing
+    // This allows third-party services to discover payment requirements
     const result = await settlePayment({
-      resourceUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/token-analysis?tokenAddress=${encodeURIComponent(tokenAddress)}`,
+      resourceUrl,
       method: "GET",
       paymentData,
       payTo: process.env.MERCHANT_WALLET_ADDRESS!,
@@ -2043,6 +2049,14 @@ export async function GET(request: Request) {
         headers: result.responseHeaders,
       });
     }
+  }
+
+  // After payment is verified (or if free), validate parameters
+  const { searchParams } = new URL(request.url);
+  const tokenAddress = searchParams.get("tokenAddress");
+
+  if (!tokenAddress) {
+    return Response.json({ error: "Token address is required as query parameter" }, { status: 400 });
   }
 
   try {

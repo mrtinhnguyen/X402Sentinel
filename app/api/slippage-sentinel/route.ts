@@ -294,12 +294,64 @@ function analyzePoolMetrics(
 }
 
 export async function GET(request: Request) {
+  // ALWAYS check payment first (before parameter validation)
+  // This allows third-party services (like x402scan.com) to configure payment requirements
+  // even when parameters are missing
+  
+  // Skip payment verification if price is 0 (free)
+  if (!PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.isFree) {
+    // Get payment data - let settlePayment handle 402 if missing
+    const paymentData = request.headers.get("x-payment");
+
+    // Get parameters (may be undefined for payment configuration)
+    const { searchParams } = new URL(request.url);
+    const tokenIn = searchParams.get("token_in");
+    const tokenOut = searchParams.get("token_out");
+    const amountIn = searchParams.get("amount_in");
+    const routeHint = searchParams.get("route_hint") || "base";
+
+    // Build resource URL with available parameters
+    const queryParams = new URLSearchParams();
+    if (tokenIn) queryParams.set("token_in", tokenIn);
+    if (tokenOut) queryParams.set("token_out", tokenOut);
+    if (amountIn) queryParams.set("amount_in", amountIn);
+    if (routeHint) queryParams.set("route_hint", routeHint);
+    
+    const resourceUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/slippage-sentinel${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    // Verify payment - settlePayment will return proper 402 format if paymentData is missing
+    // This allows third-party services to discover payment requirements
+    const result = await settlePayment({
+      resourceUrl,
+      method: "GET",
+      paymentData,
+      payTo: process.env.MERCHANT_WALLET_ADDRESS!,
+      network: base,
+      price: {
+        amount: PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.amount,
+        asset: {
+          address: USDC_BASE_ADDRESS,
+        },
+      },
+      facilitator: thirdwebFacilitator,
+    });
+
+    if (result.status !== 200) {
+      return Response.json(result.responseBody, {
+        status: result.status,
+        headers: result.responseHeaders,
+      });
+    }
+  }
+
+  // After payment is verified (or if free), validate parameters
   const { searchParams } = new URL(request.url);
   const tokenIn = searchParams.get("token_in");
   const tokenOut = searchParams.get("token_out");
   const amountIn = searchParams.get("amount_in");
-  const routeHint = searchParams.get("route_hint");
+  const routeHint = searchParams.get("route_hint") || "base";
 
+  // Validate required parameters
   if (!tokenIn || !tokenOut || !amountIn) {
     return Response.json(
       { error: "token_in, token_out, and amount_in are required" },
@@ -329,35 +381,6 @@ export async function GET(request: Request) {
       { error: "amount_in must be a positive number" },
       { status: 400 }
     );
-  }
-
-  // Skip payment verification if price is 0 (free)
-  if (!PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.isFree) {
-    // Get payment data - let settlePayment handle 402 if missing
-    const paymentData = request.headers.get("x-payment");
-
-    // Verify payment
-    const result = await settlePayment({
-      resourceUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/slippage-sentinel?token_in=${encodeURIComponent(tokenIn)}&token_out=${encodeURIComponent(tokenOut)}&amount_in=${encodeURIComponent(amountIn)}${routeHint ? `&route_hint=${encodeURIComponent(routeHint)}` : ''}`,
-      method: "GET",
-      paymentData,
-      payTo: process.env.MERCHANT_WALLET_ADDRESS!,
-      network: base,
-      price: {
-        amount: PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.amount,
-        asset: {
-          address: USDC_BASE_ADDRESS,
-        },
-      },
-      facilitator: thirdwebFacilitator,
-    });
-
-    if (result.status !== 200) {
-      return Response.json(result.responseBody, {
-        status: result.status,
-        headers: result.responseHeaders,
-      });
-    }
   }
 
   try {

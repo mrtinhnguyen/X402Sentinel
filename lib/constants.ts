@@ -87,7 +87,7 @@ const getPaymentAmount = (endpoint: 'TOKEN_ANALYSIS' | 'SLIPPAGE_SENTINEL') => {
   // Handle "0" or empty string as free (no payment required)
   // If envVar is undefined, use default. If it's "0" or "", treat as free.
   const amount = envVar === undefined 
-    ? "50000" // Default $0.05 USDC
+    ? "10000" // Default 0.01 USDC
     : (envVar === "0" || envVar === "" ? "0" : envVar);
     
   return {
