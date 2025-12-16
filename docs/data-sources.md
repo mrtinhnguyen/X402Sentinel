@@ -1,8 +1,8 @@
-# Avalanche Sentinel - Data Sources
+# Base Sentinel - Data Sources
 
 ## Overview
 
-This document outlines all data sources used in Avalanche Sentinel for comprehensive token analysis, risk intelligence, and sentiment analysis.
+This document outlines all data sources used in Base Sentinel for comprehensive token analysis, risk intelligence, and sentiment analysis.
 
 ## Primary Data Sources
 
@@ -18,7 +18,7 @@ This document outlines all data sources used in Avalanche Sentinel for comprehen
 
 **API Endpoint**: `GET /simple/networks/{network}/token_price/{addresses}`
 
-**Network ID**: `avalanche`
+**Network ID**: `base`
 
 **Authentication**: API key in header `x-cg-demo-api-key`
 
@@ -27,7 +27,7 @@ This document outlines all data sources used in Avalanche Sentinel for comprehen
 **Example Usage**:
 ```typescript
 const response = await fetch(
-  `https://api.coingecko.com/api/v3/simple/networks/avalanche/token_price/${tokenAddress}?include_market_cap=true&include_24hr_vol=true&include_24hr_price_change=true`,
+  `https://api.coingecko.com/api/v3/simple/networks/base/token_price/${tokenAddress}?include_market_cap=true&include_24hr_vol=true&include_24hr_price_change=true`,
   {
     headers: {
       'x-cg-demo-api-key': process.env.COINGECKO_API!,
@@ -89,7 +89,7 @@ const data = await response.json();
 
 ---
 
-### 3. OpenRouter AI
+### 3. OpenAI
 
 **Purpose**: AI-powered sentiment analysis and risk intelligence
 
@@ -100,37 +100,32 @@ const data = await response.json();
 - Natural language processing
 - Pattern recognition
 
-**Models Available**:
-- GPT-4, GPT-3.5 (OpenAI)
-- Claude (Anthropic)
-- Gemini (Google)
-- Llama, Mistral (Open source)
+**Model**: GPT-4o
 
-**API Endpoint**: `POST https://openrouter.ai/api/v1/chat/completions`
+**API Endpoint**: `POST https://api.openai.com/v1/chat/completions`
 
-**Documentation**: https://openrouter.ai/docs
+**Documentation**: https://platform.openai.com/docs
 
 **Example Usage**:
 ```typescript
-const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    model: 'openai/gpt-4',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are an expert cryptocurrency risk analyst...'
-      },
-      {
-        role: 'user',
-        content: `Analyze this token data: ${tokenData}`
-      }
-    ]
-  })
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+const completion = await openai.chat.completions.create({
+  model: 'gpt-4o',
+  messages: [
+    {
+      role: 'system',
+      content: 'You are an expert cryptocurrency risk analyst...'
+    },
+    {
+      role: 'user',
+      content: `Analyze this token data: ${tokenData}`
+    }
+  ]
 });
 ```
 
@@ -157,7 +152,7 @@ const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
 
 ---
 
-### 4. Avalanche RPC (Direct Blockchain Access)
+### 4. Base RPC (Direct Blockchain Access)
 
 **Purpose**: On-chain data not available through DexScreener
 
@@ -170,19 +165,19 @@ const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
 - Token transfers
 
 **RPC Providers**:
-- Avalanche Public RPC
-- Infura (Avalanche)
+- Base Public RPC
+- Infura (Base)
 - QuickNode
-- Alchemy (if supporting Avalanche)
+- Alchemy (Base)
 
 **Example Usage**:
 ```typescript
 // Using ethers.js or viem
 import { createPublicClient, http } from 'viem';
-import { avalanche } from 'viem/chains';
+import { base } from 'viem/chains';
 
 const client = createPublicClient({
-  chain: avalanche,
+  chain: base,
   transport: http('https://api.avax.network/ext/bc/C/rpc')
 });
 
@@ -272,7 +267,7 @@ graph TB
     end
     
     subgraph "AI Processing"
-        OR[OpenRouter<br/>AI Analysis]
+        OPENAI[OpenAI<br/>AI Analysis]
     end
     
     subgraph "Analysis Types"
@@ -325,11 +320,11 @@ graph TB
 
 | Analysis Type | Data Sources | AI Processing |
 |---------------|--------------|---------------|
-| **On-Chain Sentiment** | Avalanche RPC (transactions, flows) | OpenRouter GPT-4 |
-| **Social Sentiment** | Twitter API, Reddit API | OpenRouter GPT-4 |
-| **Risk Score** | DexScreener + RPC + Social | OpenRouter GPT-4 |
-| **Trading Signals** | All combined data | OpenRouter GPT-4 |
-| **Whale Analysis** | Avalanche RPC (large transactions) | OpenRouter GPT-4 |
+| **On-Chain Sentiment** | Base RPC (transactions, flows) | OpenAI GPT-4o |
+| **Social Sentiment** | Twitter API, Reddit API | OpenAI GPT-4o |
+| **Risk Score** | DexScreener + RPC + Social | OpenAI GPT-4o |
+| **Trading Signals** | All combined data | OpenAI GPT-4o |
+| **Whale Analysis** | Base RPC (large transactions) | OpenAI GPT-4o |
 
 ## API Rate Limits & Costs
 
@@ -338,10 +333,10 @@ graph TB
 - **Paid Tier**: Higher rate limits
 - **Recommendation**: Cache data, use WebSocket if available
 
-### OpenRouter
+### OpenAI
 - **Pricing**: Pay per token (varies by model)
-- **Models**: GPT-4 (~$0.03/1K tokens), GPT-3.5 (~$0.002/1K tokens)
-- **Recommendation**: Use GPT-3.5 for simple tasks, GPT-4 for complex analysis
+- **Models**: GPT-4o (~$0.005/1K input tokens, ~$0.015/1K output tokens), GPT-3.5 (~$0.0005/1K input tokens)
+- **Recommendation**: Use GPT-4o for comprehensive analysis
 
 ### Avalanche RPC
 - **Public RPC**: Rate limited, may be slow
@@ -360,7 +355,7 @@ graph TB
 **Tier 1 (Essential)**:
 - DexScreener API (trading data)
 - Avalanche RPC (on-chain data)
-- OpenRouter (AI analysis)
+- OpenAI (AI analysis)
 
 **Tier 2 (Important)**:
 - Twitter API (social sentiment)
@@ -390,14 +385,18 @@ graph TB
 # CoinGecko
 COINGECKO_API=your_coingecko_api_key
 
-# OpenRouter
-OPENROUTER_API_KEY=your_openrouter_api_key
+# OpenAI
+OPENAI_API_KEY=your_openai_api_key
+
+# X402 Payment Configuration (Optional - defaults to $0.05 USDC per endpoint)
+X402_TOKEN_ANALYSIS_PRICE=50000
+X402_SLIPPAGE_SENTINEL_PRICE=50000
 
 # DexScreener (if API key required - usually not needed)
 DEXSCREENER_API_KEY=your_key_here
 
 # Avalanche RPC
-AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
+BASE_RPC_URL=https://mainnet.base.org
 # Or use paid provider:
 # AVALANCHE_RPC_URL=https://avalanche-mainnet.infura.io/v3/YOUR_KEY
 
@@ -423,12 +422,12 @@ Both token data collection and AI analysis are gated behind a single $0.05 payme
 
 1. ✅ Set up CoinGecko API access
 2. ✅ Set up DexScreener API access (no key needed for basic)
-3. ✅ Set up OpenRouter account and API key
+3. ✅ Set up OpenAI account and API key
 4. ✅ Configure Avalanche RPC connection
 5. ⏳ Set up Twitter API (if using)
 6. ⏳ Set up Reddit API (if using)
 7. ⏳ Implement data aggregation layer
 8. ⏳ Implement caching layer
-9. ⏳ Integrate OpenRouter for AI analysis
+9. ⏳ Integrate OpenAI for AI analysis
 10. ⏳ Implement on-chain data fetching
 

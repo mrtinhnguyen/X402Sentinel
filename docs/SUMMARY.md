@@ -12,7 +12,7 @@
 - **Payment Required**: Yes ($0.05 USDC)
 - **Functionality**: 
   - Fetches token data from CoinGecko and DexScreener
-  - Analyzes with OpenRouter AI
+  - Analyzes with OpenAI
   - Returns comprehensive analysis with risk score
 
 ### 3. Data Sources Integration
@@ -27,11 +27,11 @@
 - Price and volume information
 - No API key required for basic usage
 
-#### OpenRouter AI ✅
+#### OpenAI ✅
 - GPT-4o model integration
 - Sentiment and risk analysis
-- Environment variable: `OPENROUTER_API_KEY`
-- OpenAI SDK with OpenRouter baseURL
+- Environment variable: `OPENAI_API_KEY`
+- OpenAI SDK with OpenAI API
 
 ### 4. AI Analysis Features
 - **Risk Score**: 0-100 rating
@@ -87,7 +87,11 @@ MERCHANT_WALLET_ADDRESS=your_merchant_address
 
 # APIs (NEW)
 COINGECKO_API=your_coingecko_api_key
-OPENROUTER_API_KEY=your_openrouter_api_key
+OPENAI_API_KEY=your_openai_api_key
+
+# X402 Payment Configuration (Optional - defaults to $0.05 USDC per endpoint)
+X402_TOKEN_ANALYSIS_PRICE=50000
+X402_SLIPPAGE_SENTINEL_PRICE=50000
 
 # Optional
 NEXT_PUBLIC_SITE_URL=https://your-site.com
@@ -96,7 +100,7 @@ NEXT_PUBLIC_API_BASE_URL=https://localhost:3000
 
 ## 📦 Dependencies Added
 
-- `@openrouter/sdk`: OpenRouter AI SDK for sentiment analysis
+- `openai`: OpenAI SDK for AI analysis
 
 ## 🚀 Quick Start
 
@@ -107,7 +111,8 @@ NEXT_PUBLIC_API_BASE_URL=https://localhost:3000
 
 2. **Set Environment Variables**:
    - Add `COINGECKO_API` to `.env.local`
-   - Add `OPENROUTER_API_KEY` to `.env.local`
+   - Add `OPENAI_API_KEY` to `.env.local`
+   - Optionally configure `X402_TOKEN_ANALYSIS_PRICE` and `X402_SLIPPAGE_SENTINEL_PRICE` for custom pricing
 
 3. **Test the API**:
    - Start dev server: `npm run dev`
@@ -151,7 +156,7 @@ NEXT_PUBLIC_API_BASE_URL=https://localhost:3000
 
 1. **Single Payment Gate**: One $0.05 payment unlocks everything
 2. **Comprehensive Data**: CoinGecko + DexScreener + On-chain
-3. **AI-Powered Analysis**: OpenRouter GPT-4o for intelligent insights
+3. **AI-Powered Analysis**: OpenAI GPT-4o for intelligent insights
 4. **Risk Scoring**: 0-100 score with detailed breakdown
 5. **Clear Recommendations**: BUY/HOLD/SELL/AVOID with reasoning
 

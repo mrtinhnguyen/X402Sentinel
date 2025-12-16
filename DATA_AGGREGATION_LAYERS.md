@@ -7,7 +7,7 @@
   - Market capitalization
   - 24-hour trading volume
   - 24-hour price change percentage
-- **Endpoint**: `/api/v3/simple/networks/avalanche/token_price/{address}`
+- **Endpoint**: `/api/v3/simple/networks/base/token_price/{address}`
 - **Fallback**: Uses DexScreener data if token not found
 
 ---
@@ -22,12 +22,12 @@
   - Chart patterns from price history
   - Volume and price change data
 - **Endpoint**: `/token-pairs/v1/{chainId}/{tokenAddress}`
-- **Chain IDs Tried**: "avalanche", "avax", "43114"
+- **Chain IDs Tried**: "base", "8453"
 - **Fallback**: `/latest/dex/tokens/{tokenAddress}`
 
 ---
 
-## 3. **Avalanche RPC (On-Chain)**
+## 3. **Base RPC (On-Chain)**
 - **Purpose**: Blockchain-native data
 - **Data Fetched**:
   - Token name, symbol, decimals, total supply
@@ -36,7 +36,7 @@
   - Buy/sell ratio estimation (from DEX router interactions)
   - Whale activity detection (large transfers >1% of supply)
   - Holder distribution analysis
-- **RPC Endpoint**: `https://api.avax.network/ext/bc/C/rpc`
+- **RPC Endpoint**: `https://mainnet.base.org`
 - **Method**: Direct blockchain queries via viem
 
 ---

@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Use webpack instead of Turbopack for better compatibility with thirdweb
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Exclude server-side modules from client bundles
     if (!isServer) {
       config.resolve.fallback = {
@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
         os: false,
         path: false,
       };
+    }
+    // Fix source map warnings in development
+    if (dev) {
+      config.devtool = 'eval-cheap-module-source-map';
     }
     return config;
   },

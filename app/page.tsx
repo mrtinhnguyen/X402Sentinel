@@ -42,7 +42,7 @@ export default function Home() {
           </h1>
           
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/90 mb-12 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
-            AI-powered risk intelligence and slippage protection for Avalanche tokens. 
+            AI-powered risk intelligence and slippage protection for Base tokens. 
             Make informed trading decisions with real-time analysis and safe swap recommendations.
           </p>
         </div>

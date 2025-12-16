@@ -1,15 +1,15 @@
 # Sentinel 🛡️
 
-**AI-powered risk intelligence and slippage protection for Avalanche tokens**
+**AI-powered risk intelligence and slippage protection for Base tokens**
 
-Sentinel is a cutting-edge web application that provides comprehensive, AI-driven risk analysis and safe slippage estimation for Avalanche tokens. By combining live on-chain data, decentralized AI sentiment analysis, social media intelligence, and DEX pool analysis, it delivers actionable insights to help users make informed trading decisions.
+Sentinel is a cutting-edge web application that provides comprehensive, AI-driven risk analysis and safe slippage estimation for Base tokens. By combining live on-chain data, decentralized AI sentiment analysis, social media intelligence, and DEX pool analysis, it delivers actionable insights to help users make informed trading decisions.
 
 ## 🎯 Overview
 
 Sentinel offers two powerful tools:
 
 1. **Token Analysis** - Comprehensive AI-powered risk assessment with multi-source data aggregation
-2. **Slippage Sentinel** - Safe slippage tolerance estimation for any swap route on Avalanche
+2. **Slippage Sentinel** - Safe slippage tolerance estimation for any swap route on Base
 
 Both tools are gated behind a single $0.05 USDC micro-payment via the x402 protocol.
 
@@ -68,19 +68,25 @@ Both tools are gated behind a single $0.05 USDC micro-payment via the x402 proto
 
 - **Framework**: Next.js 16 (App Router) with TypeScript
 - **Styling**: Tailwind CSS + shadcn/ui components
-- **Blockchain**: Avalanche Fuji Testnet (C-Chain)
+- **Blockchain**: Base Mainnet
 - **Payment**: Thirdweb x402 Protocol
-- **AI**: OpenRouter (GPT-4o)
+- **AI**: OpenAI (GPT-4o)
 - **Data Sources**:
   - **CoinGecko API** - Market data (price, market cap, volume)
   - **DexScreener API** - DEX data, liquidity pools via `/token-pairs/v1/{chainId}/{tokenAddress}`
   - **GeckoTerminal API** - Alternative pool data source
-  - **Avalanche RPC** - On-chain data (token info, transfer events)
+  - **Base RPC** - On-chain data (token info, transfer events)
   - **X/Twitter API v2** - Social sentiment and top tweets
   - **Reddit API** - Community sentiment
+  - **Advanced On-Chain Metrics APIs** (Optional):
+    - **Glassnode** - MVRV, NUPL, Realized Cap, HODL Waves
+    - **CryptoQuant** - Exchange flows, on-chain metrics
+    - **Dune Analytics** - Custom Base chain queries
+    - **Nansen** - Whale tracking, smart money flows
+    - **DeFiLlama** - TVL data (public API)
 - **Libraries**:
   - **viem** - EVM interaction and on-chain data fetching
-  - **OpenAI SDK** - AI integration via OpenRouter
+  - **OpenAI SDK** - AI integration with OpenAI API
   - **Thirdweb SDK v5** - Wallet connection and x402 payments
 
 ## 🚀 Getting Started
@@ -92,7 +98,12 @@ Both tools are gated behind a single $0.05 USDC micro-payment via the x402 proto
 - Thirdweb account
 - X/Twitter API credentials (optional, for social sentiment)
 - CoinGecko API key (optional, for enhanced rate limits)
-- OpenRouter API key (required for AI analysis)
+- **RPC Provider** (recommended for production):
+  - **Alchemy** (recommended) - Get API key from [Alchemy](https://www.alchemy.com/)
+  - **Infura** - Get API key from [Infura](https://www.infura.io/)
+  - **QuickNode** - Get endpoint from [QuickNode](https://www.quicknode.com/)
+  - Or use public Base RPC (may have rate limits)
+- OpenAI API key (required for AI analysis)
 
 ### Installation
 
@@ -107,7 +118,7 @@ npm install
 
 ### Environment Setup
 
-Create a `.env.local` file in the root directory:
+Create a `.env.local` file in the root directory (or use `.env.example` as a template):
 
 ```env
 # Thirdweb Configuration (Required)
@@ -117,7 +128,15 @@ THIRDWEB_SERVER_WALLET_ADDRESS=your_facilitator_address
 MERCHANT_WALLET_ADDRESS=your_merchant_wallet
 
 # AI Configuration (Required)
-OPENROUTER_API_KEY=your_openrouter_api_key
+OPENAI_API_KEY=your_openai_api_key
+
+# X402 Payment Configuration (Optional - defaults to $0.05 USDC per endpoint)
+# Use NEXT_PUBLIC_ prefix for client-side access (required for UI display)
+NEXT_PUBLIC_X402_TOKEN_ANALYSIS_PRICE=50000
+NEXT_PUBLIC_X402_SLIPPAGE_SENTINEL_PRICE=50000
+# Server-side versions (optional, will use NEXT_PUBLIC_ if not set)
+X402_TOKEN_ANALYSIS_PRICE=50000
+X402_SLIPPAGE_SENTINEL_PRICE=50000
 
 # Data Sources (Optional but recommended)
 COINGECKO_API=your_coingecko_api_key
@@ -128,6 +147,24 @@ X_API_KEY=your_x_api_key
 X_API_SECRET=your_x_api_secret
 X_ACCESS_TOKEN=your_x_access_token
 X_ACCESS_SECRET=your_x_access_secret
+
+# RPC Configuration (Recommended for production)
+# System automatically falls back through providers in order if one fails
+BASE_RPC_URL=https://mainnet.base.org  # Primary RPC endpoint (or your custom endpoint)
+# Optional: Add fallback RPC providers for better reliability
+ALCHEMY_BASE_API_KEY=your_alchemy_api_key  # Alchemy Base Mainnet API key
+INFURA_BASE_API_KEY=f23dca8a869f4b5da01da5f17cf601e8  # Infura Base Mainnet API key
+QUICKNODE_BASE_URL=https://your-quicknode-endpoint.base-mainnet.quiknode.pro/...  # QuickNode endpoint
+# If no RPC providers configured, system uses public Base RPC (may have rate limits)
+
+# Advanced On-Chain Metrics APIs (Optional)
+# These enhance accuracy but system works fine without them
+GLASSNODE_API_KEY=your_glassnode_api_key_here  # Optional - for MVRV/NUPL
+CRYPTOQUANT_API_KEY=your_cryptoquant_api_key_here  # Optional - for exchange flows
+DUNE_API_KEY=your_dune_api_key_here  # Optional - for custom Base chain queries
+DUNE_QUERY_ID=123456  # Optional - your Dune query ID
+NANSEN_API_KEY=your_nansen_api_key_here  # Optional - for whale tracking
+# DeFiLlama is public, no key needed
 
 # Site Configuration
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -145,14 +182,14 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
 2. **Set Up Facilitator Wallet (ERC4337 Smart Account)**
    - In Thirdweb dashboard, go to **Server Wallets** section
    - Click **Show ERC4337 Smart Account**
-   - Switch to Avalanche Fuji Testnet
+   - Switch to Base Mainnet
    - Copy the smart account address → `THIRDWEB_SERVER_WALLET_ADDRESS`
-   - Fund the address with testnet AVAX for gas fees
+   - Fund the address with ETH for gas fees
 
    ⚠️ **Important**: Only ERC4337 Smart Accounts are supported as facilitators.
 
-3. **Get Testnet USDC**
-   - Avalanche Fuji USDC: `0x5425890298aed601595a70AB815c96711a31Bc65`
+3. **Get Base USDC**
+   - Base Mainnet USDC: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
    - Get testnet tokens from faucets
 
 ### X/Twitter API Setup (Optional)
@@ -177,9 +214,36 @@ Open [http://localhost:3000](http://localhost:3000)
 # Build the application
 npm run build
 
-# Start production server
+# Start production server locally
 npm start
 ```
+
+## 🚀 Deployment to Vercel
+
+Xem file **[DEPLOY.md](./DEPLOY.md)** để có hướng dẫn chi tiết về deploy lên Vercel.
+
+### Quick Start
+
+1. **Push code to Git repository**
+2. **Import to Vercel**: [vercel.com/new](https://vercel.com/new)
+3. **Add Environment Variables** (xem `.env.example` hoặc `DEPLOY.md`)
+4. **Deploy** và cập nhật `NEXT_PUBLIC_API_BASE_URL` sau deploy đầu tiên
+
+### Environment Variables Required
+
+Tất cả variables từ `.env.example` cần được thêm vào Vercel Dashboard → Settings → Environment Variables.
+
+**Critical Variables**:
+- `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`
+- `THIRDWEB_SECRET_KEY`
+- `THIRDWEB_SERVER_WALLET_ADDRESS`
+- `MERCHANT_WALLET_ADDRESS`
+- `OPENAI_API_KEY`
+
+Sau khi deploy, cập nhật:
+- `NEXT_PUBLIC_API_BASE_URL=https://your-project.vercel.app`
+
+Xem [DEPLOY.md](./DEPLOY.md) để có hướng dẫn đầy đủ và troubleshooting.
 
 ## 📊 How It Works
 
@@ -193,8 +257,8 @@ npm start
 6. User approves payment
 7. System fetches data from multiple sources in parallel:
    - **CoinGecko** - Price, market cap, 24h volume, price change
-   - **DexScreener** - Pool data via `/token-pairs/v1/avalanche/{tokenAddress}`, aggregated liquidity
-   - **Avalanche RPC** - Token info, transfer events (limited to 2048 blocks)
+   - **DexScreener** - Pool data via `/token-pairs/v1/base/{tokenAddress}`, aggregated liquidity
+   - **Base RPC** - Token info, transfer events (limited to 2048 blocks)
    - **X/Twitter API** - Recent tweets with multiple query strategies
    - **Reddit API** - Community posts and discussions
 8. AI analyzes all data using GPT-4o and generates:
@@ -216,7 +280,7 @@ npm start
    - Token In address
    - Token Out address
    - Amount In
-   - Route Hint (optional, defaults to "avalanche")
+   - Route Hint (optional, defaults to "base")
 3. User connects wallet and approves $0.05 USDC payment
 4. System fetches pool data:
    - **DexScreener** - Primary source for pool data
@@ -251,7 +315,7 @@ npm start
 #### DexScreener Integration
 
 - **Primary Endpoint**: `/token-pairs/v1/{chainId}/{tokenAddress}`
-- **Chain IDs Tried**: "avalanche", "avax", "43114"
+- **Chain IDs Tried**: "base", "8453"
 - **Fallback**: `/latest/dex/tokens/{tokenAddress}`
 - **Data Extracted**:
   - Aggregated liquidity across all pools
@@ -262,11 +326,11 @@ npm start
 
 #### CoinGecko Integration
 
-- **Endpoint**: `/api/v3/simple/networks/avalanche/token_price/{address}`
+- **Endpoint**: `/api/v3/simple/networks/base/token_price/{address}`
 - **Fallback**: Uses DexScreener data if token not found
 - **Data Extracted**: Price, market cap, 24h volume, 24h price change
 
-#### On-Chain Data (Avalanche RPC)
+#### On-Chain Data (Base RPC)
 
 - **RPC**: `https://api.avax.network/ext/bc/C/rpc`
 - **Data Extracted**:
@@ -358,6 +422,23 @@ x402-starter-kit/
 - **Chart Patterns**: Basic pattern detection (can be enhanced)
 - **Transfer Events**: RPC block range limited to 2048 blocks to avoid errors
 
+## 🔌 Advanced API Integration
+
+Sentinel supports integration with professional on-chain analytics platforms for enhanced metrics:
+
+- **Glassnode** - Accurate MVRV, NUPL, Realized Cap, HODL Waves
+- **CryptoQuant** - Real-time exchange flows and on-chain metrics
+- **Dune Analytics** - Custom Base chain queries for specific metrics
+- **Nansen** - Advanced whale tracking and smart money flows
+- **DeFiLlama** - TVL data for DeFi tokens (public API)
+
+All APIs are **optional** - the system automatically falls back to on-chain calculations if APIs are unavailable.
+
+📖 **See detailed integration guides:**
+- [`docs/api-integration-guide.md`](docs/api-integration-guide.md) - Complete integration guide
+- [`docs/QUICK_START_API.md`](docs/QUICK_START_API.md) - Quick start guide
+- [`README_API_INTEGRATION.md`](README_API_INTEGRATION.md) - Summary
+
 ## 🔮 Future Enhancements
 
 - [ ] Blockchain indexer integration (The Graph, Snowtrace) for accurate holder counts
@@ -384,4 +465,4 @@ For issues and questions, please open an issue on GitHub.
 
 ---
 
-**Built with ❤️ for the Avalanche ecosystem**
+**Built with ❤️ for the Base ecosystem**

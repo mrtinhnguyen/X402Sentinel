@@ -55,7 +55,7 @@ graph TB
     end
 
     subgraph AI["🤖 AI Analysis Engine"]
-        OR[OpenRouter AI]
+        OPENAI[OpenAI]
         ONCHAIN_AI[On-Chain Sentiment AI]
         SOCIAL_AI[Social Sentiment AI]
         COMBINE[Combine Analysis]
@@ -231,7 +231,7 @@ graph TB
     end
     
     subgraph "AI Analysis Layer"
-        OPENROUTER[OpenRouter AI<br/>GPT-4/Claude]
+        OPENAI_COMP[OpenAI<br/>GPT-4o]
         SENTIMENT[Sentiment Analysis<br/>NLP Processing]
         RISK[Risk Scoring<br/>Multi-factor Analysis]
         PATTERN[Pattern Detection<br/>ML Models]
@@ -266,10 +266,10 @@ graph TB
     NORMALIZE --> ENRICH
     ENRICH --> VALIDATE
     
-    VALIDATE --> OPENROUTER
-    OPENROUTER --> SENTIMENT
-    OPENROUTER --> RISK
-    OPENROUTER --> PATTERN
+    VALIDATE --> OPENAI_COMP
+    OPENAI_COMP --> SENTIMENT
+    OPENAI_COMP --> RISK
+    OPENAI_COMP --> PATTERN
     
     SENTIMENT --> COMBINE
     RISK --> COMBINE
@@ -285,7 +285,7 @@ graph TB
     REDIS --> STREAM
     
     style COLLECTOR fill:#3b82f6
-    style OPENROUTER fill:#8b5cf6
+    style OPENAI_COMP fill:#8b5cf6
     style SENTIMENT fill:#8b5cf6
     style SIGNAL fill:#10b981
     style REDIS fill:#ef4444
@@ -313,7 +313,7 @@ graph TB
 - **Social Media**: Twitter, Reddit, news articles
 
 ### AI Processing
-- **OpenRouter**: Unified AI API for accessing GPT-4, Claude, and other models
+- **OpenAI**: AI API for GPT-4o model
 - **On-Chain Sentiment**: Analyzes buy/sell pressure, volume trends, whale behavior
 - **Social Sentiment**: Processes social media data for market sentiment
 - **Combined Analysis**: Merges both sentiment types for comprehensive insights
@@ -328,6 +328,6 @@ graph TB
 - **Blockchain**: Thirdweb SDK v5, Avalanche Network
 - **Payment**: x402 Protocol, ERC4337 Smart Accounts
 - **Data**: PostgreSQL, Redis
-- **AI**: OpenRouter (GPT-4, Claude, etc.)
+- **AI**: OpenAI (GPT-4o)
 - **APIs**: DexScreener API, Avalanche RPC, Twitter API, Reddit API
 

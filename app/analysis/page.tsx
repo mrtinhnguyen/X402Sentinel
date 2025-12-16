@@ -8,9 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TransactionLog, LogEntry } from "@/components/transaction-log";
-import { Separator } from "@/components/ui/separator";
 import { createNormalizedFetch } from "@/lib/payment";
-import { AVALANCHE_FUJI_CHAIN_ID, PAYMENT_AMOUNTS, getApiBaseUrl } from "@/lib/constants";
+import { BASE_MAINNET_CHAIN_ID, PAYMENT_AMOUNTS, getApiBaseUrl } from "@/lib/constants";
 import { TokenAnalysisResult } from "@/components/token-analysis-result";
 import Link from "next/link";
 import Image from "next/image";
@@ -65,6 +64,11 @@ export default function AnalysisPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // Calculate display price from payment amount (USDC has 6 decimals)
+  const displayPrice = PAYMENT_AMOUNTS.TOKEN_ANALYSIS.isFree 
+    ? "Free" 
+    : `$${(parseInt(PAYMENT_AMOUNTS.TOKEN_ANALYSIS.amount) / 1000000).toFixed(2)} USDC`;
+
   useEffect(() => {
     setLogs([]);
     setResult(null);
@@ -100,24 +104,32 @@ export default function AnalysisPage() {
     try {
       addLog("Initiating token analysis...", "info");
 
-      const normalizedFetch = createNormalizedFetch(AVALANCHE_FUJI_CHAIN_ID);
-      const fetchWithPay = wrapFetchWithPayment(
-        normalizedFetch,
-        client,
-        wallet,
-        PAYMENT_AMOUNTS.TOKEN_ANALYSIS.bigInt
-      );
-
-      addLog("Requesting payment authorization ($0.05 USDC)...", "info");
-      
       const apiUrl = `${getApiBaseUrl()}/api/token-analysis?tokenAddress=${encodeURIComponent(tokenAddress.trim())}`;
       
       let response;
-      try {
-        response = await fetchWithPay(apiUrl);
-      } catch (error) {
-        console.error("Error in fetchWithPay:", error);
-        throw error;
+      
+      // Skip payment if price is 0 (free)
+      if (PAYMENT_AMOUNTS.TOKEN_ANALYSIS.isFree) {
+        addLog("Free access - no payment required", "info");
+        response = await fetch(apiUrl);
+      } else {
+        const normalizedFetch = createNormalizedFetch(BASE_MAINNET_CHAIN_ID);
+        const fetchWithPay = wrapFetchWithPayment(
+          normalizedFetch,
+          client,
+          wallet,
+          PAYMENT_AMOUNTS.TOKEN_ANALYSIS.bigInt
+        );
+
+        const priceInUSD = (parseInt(PAYMENT_AMOUNTS.TOKEN_ANALYSIS.amount) / 1000000).toFixed(2);
+        addLog(`Requesting payment authorization ($${priceInUSD} USDC)...`, "info");
+        
+        try {
+          response = await fetchWithPay(apiUrl);
+        } catch (error) {
+          console.error("Error in fetchWithPay:", error);
+          throw error;
+        }
       }
 
       if (!response.ok && response.status !== 402) {
@@ -226,9 +238,9 @@ export default function AnalysisPage() {
         </div>
         <div className="relative z-10 text-center space-y-6 p-8">
           <div>
-            <h1 className="text-4xl font-bold mb-2 text-white">Avalanche Sentinel</h1>
+            <h1 className="text-4xl font-bold mb-2 text-white">Base Sentinel</h1>
             <p className="text-white/80">AI-Powered Token Risk Analysis</p>
-            <p className="text-sm text-white/60 mt-1">Avalanche Fuji Testnet</p>
+            <p className="text-sm text-white/60 mt-1">Base Mainnet</p>
           </div>
           <ConnectButton client={client} />
         </div>
@@ -252,7 +264,7 @@ export default function AnalysisPage() {
 
       {/* Content */}
       <div className="relative z-10 min-h-screen p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
           {/* Header Navigation */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
             <div className="text-center sm:text-left">
@@ -275,7 +287,7 @@ export default function AnalysisPage() {
           </div>
 
           {/* Token Input Card */}
-          <Card className="max-w-2xl mx-auto bg-white/10 backdrop-blur-md border-white/20 shadow-2xl">
+          <Card className="max-w-6xl mx-auto bg-white/10 backdrop-blur-md border-white/20 shadow-2xl">
             <CardHeader>
               <CardTitle className="text-white">Analyze Token</CardTitle>
               <CardDescription className="text-white/70">
@@ -302,18 +314,25 @@ export default function AnalysisPage() {
                   disabled={isAnalyzing || !tokenAddress.trim()}
                   className="min-w-[200px] bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-500"
                 >
-                  {isAnalyzing ? "Analyzing..." : "Analyze ($0.05 USDC)"}
+                  {isAnalyzing ? "Analyzing..." : `Analyze (${displayPrice})`}
                 </Button>
               </div>
-              <p className="text-xs text-white/60 text-center">
-                Payment of $0.05 USDC required for comprehensive token analysis
-              </p>
+              {!PAYMENT_AMOUNTS.TOKEN_ANALYSIS.isFree && (
+                <p className="text-xs text-white/60 text-center">
+                  Payment of {displayPrice} required for comprehensive token analysis
+                </p>
+              )}
+              {PAYMENT_AMOUNTS.TOKEN_ANALYSIS.isFree && (
+                <p className="text-xs text-white/60 text-center">
+                  Free access - no payment required
+                </p>
+              )}
             </CardContent>
           </Card>
 
           {/* Analysis Result */}
           {result && (
-            <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
               <TokenAnalysisResult
                 tokenAddress={result.tokenAddress}
                 tokenData={result.tokenData}
@@ -326,7 +345,7 @@ export default function AnalysisPage() {
 
           {/* Transaction Log */}
           {logs.length > 0 && (
-            <div className="max-w-4xl mx-auto animate-in fade-in-from-bottom-4 duration-700">
+            <div className="max-w-6xl mx-auto animate-in fade-in-from-bottom-4 duration-700">
               <TransactionLog logs={logs} />
             </div>
           )}

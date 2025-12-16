@@ -8,9 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TransactionLog, LogEntry } from "@/components/transaction-log";
-import { Separator } from "@/components/ui/separator";
 import { createNormalizedFetch } from "@/lib/payment";
-import { AVALANCHE_FUJI_CHAIN_ID, PAYMENT_AMOUNTS, getApiBaseUrl } from "@/lib/constants";
+import { BASE_MAINNET_CHAIN_ID, PAYMENT_AMOUNTS, getApiBaseUrl } from "@/lib/constants";
 import { SlippageSentinel } from "@/components/slippage-sentinel";
 import Link from "next/link";
 import Image from "next/image";
@@ -39,10 +38,15 @@ export default function SlippagePage() {
   const [tokenIn, setTokenIn] = useState("");
   const [tokenOut, setTokenOut] = useState("");
   const [amountIn, setAmountIn] = useState("");
-  const [routeHint, setRouteHint] = useState("avalanche");
+  const [routeHint, setRouteHint] = useState("base");
   const [slippageResult, setSlippageResult] = useState<SlippageResult | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
+
+  // Calculate display price dynamically from PAYMENT_AMOUNTS
+  const displayPrice = PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.isFree
+    ? "Free"
+    : `$${(parseInt(PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.amount) / 1000000).toFixed(2)} USDC`;
 
   useEffect(() => {
     setLogs([]);
@@ -85,24 +89,32 @@ export default function SlippagePage() {
     try {
       addLog("Initiating slippage calculation...", "info");
 
-      const normalizedFetch = createNormalizedFetch(AVALANCHE_FUJI_CHAIN_ID);
-      const fetchWithPay = wrapFetchWithPayment(
-        normalizedFetch,
-        client,
-        wallet,
-        PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.bigInt
-      );
-
-      addLog("Requesting payment authorization ($0.05 USDC)...", "info");
-      
       const apiUrl = `${getApiBaseUrl()}/api/slippage-sentinel?token_in=${encodeURIComponent(tokenIn.trim())}&token_out=${encodeURIComponent(tokenOut.trim())}&amount_in=${encodeURIComponent(amountInNum)}${routeHint ? `&route_hint=${encodeURIComponent(routeHint)}` : ''}`;
       
       let response;
-      try {
-        response = await fetchWithPay(apiUrl);
-      } catch (error) {
-        console.error("Error in fetchWithPay:", error);
-        throw error;
+      
+      // Skip payment if price is 0 (free)
+      if (PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.isFree) {
+        addLog("Free access - no payment required", "info");
+        response = await fetch(apiUrl);
+      } else {
+        const normalizedFetch = createNormalizedFetch(BASE_MAINNET_CHAIN_ID);
+        const fetchWithPay = wrapFetchWithPayment(
+          normalizedFetch,
+          client,
+          wallet,
+          PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.bigInt
+        );
+
+        const priceInUSD = (parseInt(PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.amount) / 1000000).toFixed(2);
+        addLog(`Requesting payment authorization ($${priceInUSD} USDC)...`, "info");
+        
+        try {
+          response = await fetchWithPay(apiUrl);
+        } catch (error) {
+          console.error("Error in fetchWithPay:", error);
+          throw error;
+        }
       }
 
       if (!response.ok && response.status !== 402) {
@@ -179,7 +191,7 @@ export default function SlippagePage() {
           <div>
             <h1 className="text-4xl font-bold mb-2 text-white">Slippage Sentinel</h1>
             <p className="text-white/80">Safe Slippage Tolerance Estimation</p>
-            <p className="text-sm text-white/60 mt-1">Avalanche Fuji Testnet</p>
+            <p className="text-sm text-white/60 mt-1">Base Mainnet</p>
           </div>
           <ConnectButton client={client} />
         </div>
@@ -203,12 +215,12 @@ export default function SlippagePage() {
 
       {/* Content */}
       <div className="relative z-10 min-h-screen p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
           {/* Header Navigation */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
             <div className="text-center sm:text-left">
               <h1 className="text-3xl sm:text-4xl font-bold text-white">Slippage Sentinel</h1>
-              <p className="text-white/80 text-sm sm:text-base">Estimate safe slippage tolerance for any swap route on Avalanche</p>
+              <p className="text-white/80 text-sm sm:text-base">Estimate safe slippage tolerance for any swap route on Base</p>
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-center">
               <Link href="/">
@@ -226,11 +238,11 @@ export default function SlippagePage() {
           </div>
 
           {/* Slippage Input Card */}
-          <Card className="max-w-2xl mx-auto bg-white/10 backdrop-blur-md border-white/20 shadow-2xl">
+          <Card className="max-w-6xl mx-auto bg-white/10 backdrop-blur-md border-white/20 shadow-2xl">
             <CardHeader>
               <CardTitle className="text-white">Slippage Sentinel</CardTitle>
               <CardDescription className="text-white/70">
-                Estimate safe slippage tolerance for any swap route on Avalanche
+                Estimate safe slippage tolerance for any swap route on Base
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -272,7 +284,7 @@ export default function SlippagePage() {
                   <label className="text-sm font-medium text-white/90">Route Hint (Optional)</label>
                   <Input
                     type="text"
-                    placeholder="avalanche"
+                    placeholder="base"
                     value={routeHint}
                     onChange={(e) => setRouteHint(e.target.value)}
                     disabled={isCalculating}
@@ -285,24 +297,30 @@ export default function SlippagePage() {
                 disabled={isCalculating || !tokenIn.trim() || !tokenOut.trim() || !amountIn.trim()}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-500"
               >
-                {isCalculating ? "Calculating..." : "Calculate Slippage ($0.05 USDC)"}
+                {isCalculating ? "Calculating..." : `Calculate Slippage (${displayPrice})`}
               </Button>
-              <p className="text-xs text-white/60 text-center">
-                Payment of $0.05 USDC required for slippage analysis
-              </p>
+              {PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.isFree ? (
+                <p className="text-xs text-white/60 text-center">
+                  Free access - no payment required
+                </p>
+              ) : (
+                <p className="text-xs text-white/60 text-center">
+                  Payment of {displayPrice} required for slippage analysis
+                </p>
+              )}
             </CardContent>
           </Card>
 
           {/* Slippage Result */}
           {slippageResult && (
-            <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
               <SlippageSentinel result={slippageResult} />
             </div>
           )}
 
           {/* Transaction Log */}
           {logs.length > 0 && (
-            <div className="max-w-4xl mx-auto animate-in fade-in-from-bottom-4 duration-700">
+            <div className="max-w-6xl mx-auto animate-in fade-in-from-bottom-4 duration-700">
               <TransactionLog logs={logs} />
             </div>
           )}

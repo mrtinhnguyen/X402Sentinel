@@ -1,7 +1,7 @@
 import { settlePayment, facilitator } from "thirdweb/x402";
 import { createThirdwebClient } from "thirdweb";
-import { avalancheFuji } from "thirdweb/chains";
-import { USDC_FUJI_ADDRESS, PAYMENT_AMOUNTS } from "@/lib/constants";
+import { base } from "thirdweb/chains";
+import { USDC_BASE_ADDRESS, PAYMENT_AMOUNTS } from "@/lib/constants";
 
 const client = createThirdwebClient({
   secretKey: process.env.THIRDWEB_SECRET_KEY!,
@@ -22,11 +22,9 @@ const GECKO_TERMINAL_BASE_URL = "https://api.geckoterminal.com";
 
 // Chain mapping for GeckoTerminal
 const CHAIN_MAP: Record<string, string> = {
-  avalanche: "avax",
-  avax: "avax",
+  base: "base",
   ethereum: "eth",
   eth: "eth",
-  base: "base",
   arbitrum: "arbitrum",
   optimism: "optimism",
   polygon: "polygon",
@@ -129,7 +127,7 @@ async function fetchDexScreenerPools(
   const url = buildDexScreenerUrl(routeHint, tokenIn);
   const response = await fetch(url, {
     headers: {
-      "user-agent": "avalanche-sentinel/1.0",
+      "user-agent": "base-sentinel/1.0",
     },
   });
 
@@ -147,7 +145,7 @@ async function fetchDexScreenerPools(
       const base = normalizeHex(p?.baseToken?.address);
       const quote = normalizeHex(p?.quoteToken?.address);
       const poolChain = p?.chainId?.toLowerCase();
-      const chainMatches = !routeChain || poolChain === routeChain || poolChain === "avalanche" || poolChain === "avax";
+      const chainMatches = !routeChain || poolChain === routeChain || poolChain === "base" || poolChain === "8453";
 
       return (
         chainMatches &&
@@ -179,12 +177,12 @@ async function fetchGeckoTerminalPools(
 ): Promise<NormalizedPool[]> {
   if (!routeHint || routeHint.includes("/")) return [];
 
-  const geckoChain = CHAIN_MAP[routeHint.toLowerCase()] || "avax";
+  const geckoChain = CHAIN_MAP[routeHint.toLowerCase()] || "base";
   const url = `${GECKO_TERMINAL_BASE_URL}/api/v2/networks/${geckoChain}/pools`;
 
   const response = await fetch(url, {
     headers: {
-      "user-agent": "avalanche-sentinel/1.0",
+      "user-agent": "base-sentinel/1.0",
     },
   });
 
@@ -238,7 +236,7 @@ async function fetchAllPools(
     return dexScreenerPools;
   }
 
-  const geckoPools = await fetchGeckoTerminalPools(tokenIn, tokenOut, routeHint || "avalanche");
+  const geckoPools = await fetchGeckoTerminalPools(tokenIn, tokenOut, routeHint || "base");
   return geckoPools;
 }
 
@@ -333,30 +331,33 @@ export async function GET(request: Request) {
     );
   }
 
-  // Get payment data - let settlePayment handle 402 if missing
-  const paymentData = request.headers.get("x-payment");
+  // Skip payment verification if price is 0 (free)
+  if (!PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.isFree) {
+    // Get payment data - let settlePayment handle 402 if missing
+    const paymentData = request.headers.get("x-payment");
 
-  // Verify payment
-  const result = await settlePayment({
-    resourceUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/slippage-sentinel?token_in=${encodeURIComponent(tokenIn)}&token_out=${encodeURIComponent(tokenOut)}&amount_in=${encodeURIComponent(amountIn)}${routeHint ? `&route_hint=${encodeURIComponent(routeHint)}` : ''}`,
-    method: "GET",
-    paymentData,
-    payTo: process.env.MERCHANT_WALLET_ADDRESS!,
-    network: avalancheFuji,
-    price: {
-      amount: PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.amount,
-      asset: {
-        address: USDC_FUJI_ADDRESS,
+    // Verify payment
+    const result = await settlePayment({
+      resourceUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/slippage-sentinel?token_in=${encodeURIComponent(tokenIn)}&token_out=${encodeURIComponent(tokenOut)}&amount_in=${encodeURIComponent(amountIn)}${routeHint ? `&route_hint=${encodeURIComponent(routeHint)}` : ''}`,
+      method: "GET",
+      paymentData,
+      payTo: process.env.MERCHANT_WALLET_ADDRESS!,
+      network: base,
+      price: {
+        amount: PAYMENT_AMOUNTS.SLIPPAGE_SENTINEL.amount,
+        asset: {
+          address: USDC_BASE_ADDRESS,
+        },
       },
-    },
-    facilitator: thirdwebFacilitator,
-  });
-
-  if (result.status !== 200) {
-    return Response.json(result.responseBody, {
-      status: result.status,
-      headers: result.responseHeaders,
+      facilitator: thirdwebFacilitator,
     });
+
+    if (result.status !== 200) {
+      return Response.json(result.responseBody, {
+        status: result.status,
+        headers: result.responseHeaders,
+      });
+    }
   }
 
   try {
@@ -386,7 +387,7 @@ export async function GET(request: Request) {
       token_in: tokenIn,
       token_out: tokenOut,
       amount_in: amountInNum,
-      route_hint: routeHint || "avalanche",
+      route_hint: routeHint || "base",
       timestamp: new Date().toISOString(),
     };
 

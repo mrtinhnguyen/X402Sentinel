@@ -10,8 +10,8 @@ const polySansNeutral = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Avalanche Sentinel",
-  description: "Real-time AI-powered risk intelligence and sentiment analysis platform for Avalanche tokens",
+  title: "Base Sentinel",
+  description: "Real-time AI-powered risk intelligence and sentiment analysis platform for Base tokens",
 };
 
 export default function RootLayout({

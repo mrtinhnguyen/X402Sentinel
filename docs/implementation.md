@@ -1,8 +1,8 @@
-# Avalanche Sentinel - Implementation Guide
+# Base Sentinel - Implementation Guide
 
 ## Overview
 
-This document outlines the implementation details for Avalanche Sentinel, including API integration, payment flow, and AI analysis.
+This document outlines the implementation details for Base Sentinel, including API integration, payment flow, and AI analysis.
 
 ## Payment Flow
 
@@ -78,7 +78,7 @@ Body:
 
 **Endpoint**: `GET /simple/networks/{network}/token_price/{addresses}`
 
-**Network**: `avalanche`
+**Network**: `base`
 
 **Headers**: `x-cg-demo-api-key: ${COINGECKO_API}`
 
@@ -90,7 +90,7 @@ Body:
 **Example**:
 ```typescript
 const response = await fetch(
-  `https://api.coingecko.com/api/v3/simple/networks/avalanche/token_price/${tokenAddress}?include_market_cap=true&include_24hr_vol=true&include_24hr_price_change=true`,
+  `https://api.coingecko.com/api/v3/simple/networks/base/token_price/${tokenAddress}?include_market_cap=true&include_24hr_vol=true&include_24hr_price_change=true`,
   {
     headers: {
       'x-cg-demo-api-key': process.env.COINGECKO_API!,
@@ -111,27 +111,22 @@ const response = await fetch(
 - Volume data
 - Liquidity information
 
-### 3. OpenRouter AI
+### 3. OpenAI
 
-**SDK**: `openai` package with OpenRouter baseURL
+**SDK**: `openai` package with OpenAI API
 
-**Model**: `openai/gpt-4o`
+**Model**: `gpt-4o`
 
 **Usage**:
 ```typescript
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY!,
-  defaultHeaders: {
-    'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://localhost:3000',
-    'X-Title': 'Avalanche Sentinel',
-  },
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
 const completion = await openai.chat.completions.create({
-  model: 'openai/gpt-4o',
+  model: 'gpt-4o',
   messages: [
     {
       role: 'user',
@@ -154,7 +149,7 @@ import { useState } from "react";
 import { useActiveWallet } from "thirdweb/react";
 import { wrapFetchWithPayment } from "thirdweb/x402";
 import { createNormalizedFetch } from "@/lib/payment";
-import { AVALANCHE_FUJI_CHAIN_ID, PAYMENT_AMOUNTS, API_ENDPOINTS } from "@/lib/constants";
+import { BASE_MAINNET_CHAIN_ID, PAYMENT_AMOUNTS, API_ENDPOINTS } from "@/lib/constants";
 
 export function TokenAnalysisForm() {
   const wallet = useActiveWallet();
@@ -167,7 +162,7 @@ export function TokenAnalysisForm() {
 
     setIsAnalyzing(true);
     try {
-      const normalizedFetch = createNormalizedFetch(AVALANCHE_FUJI_CHAIN_ID);
+      const normalizedFetch = createNormalizedFetch(BASE_MAINNET_CHAIN_ID);
       const fetchWithPay = wrapFetchWithPayment(
         normalizedFetch,
         client,
@@ -319,7 +314,11 @@ MERCHANT_WALLET_ADDRESS=your_merchant_address
 
 # APIs
 COINGECKO_API=your_coingecko_api_key
-OPENROUTER_API_KEY=your_openrouter_api_key
+OPENAI_API_KEY=your_openai_api_key
+
+# X402 Payment Configuration (Optional - defaults to $0.05 USDC per endpoint)
+X402_TOKEN_ANALYSIS_PRICE=50000
+X402_SLIPPAGE_SENTINEL_PRICE=50000
 
 # Optional
 NEXT_PUBLIC_SITE_URL=https://your-site.com
@@ -355,7 +354,7 @@ The AI analysis provides:
 - [x] Create `/api/token-analysis` endpoint
 - [x] Integrate CoinGecko API
 - [x] Integrate DexScreener API
-- [x] Integrate OpenRouter AI
+- [x] Integrate OpenAI
 - [ ] Implement Avalanche RPC calls for on-chain data
 - [ ] Implement social media sentiment fetching
 - [ ] Create frontend token input component

@@ -73,7 +73,7 @@
    - **Reddit API** → Community posts and discussions
 
 6. **AI Analysis**
-   - GPT-4o (via OpenRouter) analyzes all aggregated data
+   - GPT-4o (via OpenAI) analyzes all aggregated data
    - Generates risk score (0-100)
    - Provides recommendation (BUY/HOLD/SELL/AVOID)
    - Breaks down scores: on-chain, social, technical
@@ -155,6 +155,6 @@
 - Thirdweb SDK v5
 - ERC4337 Smart Accounts (gasless for facilitator)
 - Avalanche C-Chain
-- GPT-4o (OpenRouter) for AI analysis
+- GPT-4o (OpenAI) for AI analysis
 - Multiple data sources: CoinGecko, DexScreener, GeckoTerminal, X/Twitter, Reddit
 
